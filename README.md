@@ -135,11 +135,10 @@ Confirm both VMs have private IP addresses and no VM public IP addresses.
 
 Record your deployment details:
 
-- Region: `[ADD REGION]`
-- Source VM private IP: `[ADD IP]`
-- Destination VM private IP: `[ADD IP]`
-- VM size: `[ADD SIZE]`
-- Log Analytics workspace: `[ADD WORKSPACE NAME]`
+- Region: `easut-us`
+- Source VM private IP: `10.0.1.4`
+- Destination VM private IP: `10.0.1.5`
+- Log Analytics workspace: `DefaultWorkspace`
 
 ## Stage 3: Set up outbound access and install Nginx
 
