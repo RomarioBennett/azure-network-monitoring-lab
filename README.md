@@ -361,30 +361,6 @@ azure-network-monitoring-lab/
     └── 99-cleanup.sh
 ```
 
-## Screenshots and evidence
-
-Create a `screenshots/` folder and add redacted screenshots of:
-
-1. The resource group and deployed resources.
-2. The VNet address space and subnet.
-3. The NSG rule for TCP/80.
-4. Both VMs showing private IP addresses and no VM public IPs.
-5. Nginx running on the destination.
-6. The successful private connectivity test.
-7. Connection Monitor settings and baseline results.
-8. The KQL query and records returned by Log Analytics.
-9. The Nginx outage and recovery results.
-10. Workbook or alert results, if you built them.
-11. Cost Management, if you want to include the cost breakdown.
-
-Hide subscription IDs, tenant IDs, email addresses, public IP addresses, and other details you do not want to share. Never commit passwords, tokens, SSH private keys, or other secrets.
-
-## Resume summary
-
-Use this only after completing the tests and adding your evidence:
-
-> Built an Azure network monitoring lab using private Linux VMs, Azure Virtual Network, NAT Gateway, Network Watcher Connection Monitor, and Log Analytics. Tested TCP service reachability, reviewed monitoring data with KQL, and performed service outage and recovery checks.
-
 
 References:
 
