@@ -256,7 +256,7 @@ az vm run-command invoke \
   --command-id RunShellScript \
   --scripts "sudo systemctl stop nginx"
 ```
- ![](screenshots/kqltest.png)
+ ![](screenshots/kqltestfail.png)
 
    
 I waited for the next Connection Monitor tests and checked their results. I then started Nginx again:
