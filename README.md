@@ -167,8 +167,8 @@ az vm run-command invoke \
 ```
 
 Expected result: `systemctl` reports `active`, and the local HTTP request returns a response from Nginx.
+`screenshots/ngnixtest.png`
 
-Record the result: `[ADD COMMAND OUTPUT OR SCREENSHOT]`.
 
 ## Stage 4: Test connectivity between the VMs
 
@@ -181,13 +181,8 @@ bash scripts/03-test-connectivity.sh
 The script retrieves the destination's private IP, checks whether TCP/80 accepts a connection, and sends an HTTP request.
 
 A successful test confirms the source VM can reach the destination service over the private network. It also gives me a baseline to compare against during the failure test.
+`screenshots/vmtest.png`
 
-Record the result:
-
-- Test date and time: `11/4/2026, 4:22:36.000 PM`
-- TCP/80: `Pass`
-- HTTP response: `[ADD STATUS OR OUTPUT]`
-- Screenshot: `screenshots/04-private-connectivity.png`
 
 ## Stage 5: Configure Network Watcher Connection Monitor
 
@@ -234,11 +229,7 @@ Record what you found:
 
 
  - Screenshot: `screenshots/kqltest.png`
-- Table: `[ADD TABLE NAME]`
-- Timestamp column: `[ADD COLUMN]`
-- Status column and values: `[ADD COLUMN AND VALUES]`
-- Latency column and unit, if present: `[ADD COLUMN AND UNIT]`
-- Baseline measurement, if available: `[ADD OBSERVED VALUE]`
+
 
 ## Stage 7: Stop Nginx and test recovery
 
