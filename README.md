@@ -216,7 +216,7 @@ I saved the monitor and allowed it to run before starting the failure test.
 
 The important checks were that the monitor existed, the source endpoint was healthy, and test results started appearing. Creating a workspace alone does not prove Connection Monitor is sending data to it, so I checked the workspace rather than assuming the integration worked.
 
-Record the configuration and observed status:
+
 
 - Monitor name: `cm-network-performance`
 - Test configuration: `cm-configuration`
