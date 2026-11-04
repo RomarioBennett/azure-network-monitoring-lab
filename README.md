@@ -47,8 +47,8 @@ flowchart LR
 |---|---|---|
 | Virtual network | `10.0.0.0/16` | Private network |
 | Subnet | `10.0.1.0/24` | Hosts both VMs |
-| Source VM | `[ADD SOURCE PRIVATE IP]` | Starts the test |
-| Destination VM | `[ADD DESTINATION PRIVATE IP]` | Runs Nginx |
+| Source VM | `10.0.1.4` | Starts the test |
+| Destination VM | `10.0.1.5` | Runs Nginx |
 | Service | TCP/80 | Connectivity test target |
 
 Both VMs use private IPs. Neither VM needs a public IP for this lab.
@@ -138,7 +138,7 @@ Record your deployment details:
 - Region: `easut-us`
 - Source VM private IP: `10.0.1.4`
 - Destination VM private IP: `10.0.1.5`
-- Log Analytics workspace: `DefaultWorkspace`
+- Log Analytics workspace: `law-network-monitoring-570da9`
 
 ## Stage 3: Set up outbound access and install Nginx
 
@@ -184,8 +184,8 @@ A successful test confirms the source VM can reach the destination service over 
 
 Record the result:
 
-- Test date and time: `[ADD DATE AND TIME]`
-- TCP/80: `[ADD PASS OR FAIL]`
+- Test date and time: `11/4/2026, 4:22:36.000 PM`
+- TCP/80: `Pass`
 - HTTP response: `[ADD STATUS OR OUTPUT]`
 - Screenshot: `screenshots/04-private-connectivity.png`
 
@@ -213,7 +213,6 @@ Record the configuration and observed status:
 - Monitor name: `cm-network-performance`
 - Test configuration: `cm-configuration`
 - Frequency: `60 seconds`
-- Initial status: `[ADD OBSERVED STATUS]`
 - Screenshot: `screenshots/05-connection-monitor.png`
 
 ## Stage 6: Review the monitoring data with KQL
@@ -233,6 +232,8 @@ The table and column names depend on the Connection Monitor configuration and th
 
 Record what you found:
 
+
+ - Screenshot: `screenshots/kqltest.png`
 - Table: `[ADD TABLE NAME]`
 - Timestamp column: `[ADD COLUMN]`
 - Status column and values: `[ADD COLUMN AND VALUES]`
@@ -250,7 +251,9 @@ az vm run-command invoke \
   --command-id RunShellScript \
   --scripts "sudo systemctl stop nginx"
 ```
+ - Screenshot: `screenshots/kqltest.png`
 
+   
 I waited for the next Connection Monitor tests and checked their results. I then started Nginx again:
 
 ```bash
@@ -267,27 +270,9 @@ This test demonstrates a service availability problem. Stopping Nginx does not p
 
 A separate NSG rule test would demonstrate network-layer blocking. If you run one, scope the deny rule to the test traffic, record the change, and remove the rule as soon as the test ends.
 
-Record the results:
 
-- Nginx stop time: `[ADD TIME]`
-- Monitor result during outage: `[ADD RESULT]`
-- Nginx restart time: `[ADD TIME]`
-- Successful tests resumed: `[ADD TIME OR RESULT]`
-- Screenshot: `screenshots/06-failure-and-recovery.png`
 
-## Stage 8: Optional Workbook and alert
-
-A Workbook or alert is an optional extension. I would add one only after confirming the table, fields, and status values in Log Analytics.
-
-A Workbook might show recent test results, success and failure counts, or latency over time if the data includes a suitable latency field. An alert needs a tested query, evaluation period, threshold, and Action Group. Notification delivery should also be tested.
-
-Record this stage only if you completed it:
-
-- Workbook: `[ADD NAME OR N/A]`
-- Alert rule and condition: `[ADD DETAILS OR N/A]`
-- Notification test: `[ADD RESULT OR N/A]`
-
-## Stage 9: Review costs and remove NAT Gateway
+## Stage 8: Review costs and remove NAT Gateway
 
 The main cost items for this lab are VM compute, managed disks, NAT Gateway, its public IP, Connection Monitor tests, and Log Analytics ingestion and retention.
 
@@ -303,14 +288,8 @@ Before removing it, check whether the monitoring setup needs outbound connectivi
 
 The earlier US$15 to US$25 estimate for one week was not a full project total. It did not fully account for NAT Gateway and all monitoring charges. Use the Azure Pricing Calculator before deployment and Cost Management for the actual amount billed.
 
-Record your costs:
 
-- Region: `[ADD REGION]`
-- Runtime: `[ADD HOURS]`
-- Cost shown in Cost Management: `[ADD AMOUNT AND CURRENCY]`
-- NAT Gateway: `[RETAINED OR REMOVED]`
-
-## Stage 10: Delete the lab
+## Stage 9: Delete the lab
 
 When testing is complete, remove the dedicated resource group:
 
@@ -401,15 +380,6 @@ Use this only after completing the tests and adding your evidence:
 
 > Built an Azure network monitoring lab using private Linux VMs, Azure Virtual Network, NAT Gateway, Network Watcher Connection Monitor, and Log Analytics. Tested TCP service reachability, reviewed monitoring data with KQL, and performed service outage and recovery checks.
 
-Change the wording to match the work you completed. Do not list Workbooks, alerts, measured performance improvements, or other features unless you configured and tested them.
-
-## Scope and references
-
-This project focuses on private network connectivity and service monitoring.
-
-- Application Insights is not part of the base lab. A real instrumented application is needed to produce useful application telemetry.
-- NSG flow logs are not part of this build. Check Microsoft's current guidance before adding flow logs. Virtual Network flow logs are the recommended direction.
-- Workbooks, alerts, and packet capture are optional additions. Add them when you have a clear test case and evidence.
 
 References:
 
