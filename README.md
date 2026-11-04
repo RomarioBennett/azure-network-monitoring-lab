@@ -1,105 +1,95 @@
 # Azure Network Performance Monitoring Lab
 
-A hands-on Azure networking and observability project using private Linux virtual machines, NAT Gateway, Nginx, Network Watcher Connection Monitor, and Log Analytics.
+I built this lab to test connectivity between two private Linux virtual machines in Azure. The setup uses a source VM, a destination VM running Nginx, Network Watcher Connection Monitor, and Log Analytics.
 
-> **Portfolio accuracy:** This walkthrough is written in completed-project case-study style. Replace every `[RECORD ...]` placeholder with evidence from your own deployment and remove any stage you did not complete. Do not publish unverified measurements, alerts, dashboards, or integrations as facts.
+The main goal was to get familiar with Azure network monitoring and understand what the monitoring data tells you when a service becomes unavailable.
 
-## 1. Project overview
+This README follows the stages of the build. It explains the choices, commands, and checks used at each point. Replace the `[ADD ...]` fields with details from your own deployment. The scripts have been checked for Bash syntax, but they have not been tested end to end against an Azure subscription. Do not treat an expected result as a recorded result.
 
-I built an Azure environment to monitor TCP reachability between two private Linux virtual machines. One VM acted as the source of connectivity tests; the second hosted Nginx on TCP port 80. Both VMs used private IP addresses and had no public IP addresses assigned.
+## What I built
 
-Azure NAT Gateway provided outbound connectivity for package installation without exposing the VMs to unsolicited inbound internet traffic. Azure Network Watcher Connection Monitor was configured for recurring TCP tests, and Log Analytics was used to inspect telemetry with Kusto Query Language (KQL).
+- One Azure virtual network with a single subnet.
+- Two Ubuntu VMs using private IP addresses.
+- An NSG rule allowing the source VM to reach the destination on TCP/80.
+- A NAT Gateway for outbound package access.
+- Nginx on the destination VM.
+- Network Watcher Connection Monitor for recurring TCP tests.
+- A Log Analytics workspace for investigating monitoring data with KQL.
 
-### Objectives
+The source VM sends the connectivity tests. The destination VM hosts a basic web service. This gives the monitor a clear target and makes it easier to repeat the same test during normal operation and an outage.
 
-- Deploy a private Azure network with two Linux endpoints.
-- Enable controlled outbound connectivity without VM public IPs.
-- Host a simple HTTP service as a repeatable test target.
-- Monitor TCP/80 reachability over time.
-- Inspect monitoring records with KQL.
-- Simulate service failure and recovery.
-- Document security, troubleshooting, costs, and cleanup.
-
-## 2. Architecture
+## Architecture
 
 ```mermaid
 flowchart LR
-  subgraph Azure["Azure subscription"]
-    subgraph RG["Dedicated resource group"]
-      subgraph VNET["VNet 10.0.0.0/16"]
-        subgraph SUB["Subnet 10.0.1.0/24"]
-          SRC["Source Ubuntu VM<br/>Private IP only"]
-          DST["Destination Ubuntu VM<br/>Private IP only<br/>Nginx TCP/80"]
+  subgraph Azure[Azure subscription]
+    subgraph RG[Dedicated resource group]
+      subgraph VNET[VNet 10.0.0.0/16]
+        subgraph SUB[Subnet 10.0.1.0/24]
+          SRC[Source Ubuntu VM\nPrivate IP only]
+          DST[Destination Ubuntu VM\nPrivate IP only\nNginx TCP/80]
         end
-        NAT["NAT Gateway<br/>Outbound translation"]
+        NAT[NAT Gateway\nOutbound connectivity]
       end
-      CM["Network Watcher<br/>Connection Monitor"]
-      LAW["Log Analytics workspace"]
+      CM[Network Watcher\nConnection Monitor]
+      LAW[Log Analytics workspace]
     end
   end
-  SRC -->|"TCP/80 test"| DST
+  SRC -->|TCP/80 test| DST
   SRC --> NAT
   DST --> NAT
-  CM -.->|"Telemetry, where configured"| LAW
+  CM -.->|Telemetry, when configured| LAW
 ```
 
-### Addressing plan
+### Address plan
 
-| Component | Configuration | Purpose |
+| Resource | Address or setting | Role |
 |---|---|---|
-| Virtual network | `10.0.0.0/16` | Private address space |
+| Virtual network | `10.0.0.0/16` | Private network |
 | Subnet | `10.0.1.0/24` | Hosts both VMs |
-| Source VM | `[RECORD SOURCE PRIVATE IP]` | Initiates tests |
-| Destination VM | `[RECORD DESTINATION PRIVATE IP]` | Hosts Nginx |
-| Test endpoint | TCP `80` | HTTP connectivity target |
+| Source VM | `[ADD SOURCE PRIVATE IP]` | Starts the test |
+| Destination VM | `[ADD DESTINATION PRIVATE IP]` | Runs Nginx |
+| Service | TCP/80 | Connectivity test target |
 
-The VMs communicated over private addresses. The network security group allowed TCP/80 from the VNet address range rather than exposing the test service to the public internet.
+Both VMs use private IPs. Neither VM needs a public IP for this lab.
 
-### Why NAT Gateway was required
+## Why I chose these components
 
-During setup, the destination VM could not download Nginx because it had no outbound internet path. A private IP address does not automatically provide outbound internet access. I associated a NAT Gateway with the subnet so the VMs could initiate outbound connections while remaining without public IP addresses.
-
-NAT Gateway introduced additional hourly and data-processing costs. I treated it as a cost-bearing component and considered removing it after package installation, subject to verifying that monitoring continued to report.
-
-## 3. Azure components
-
-| Component | Purpose |
+| Component | Reason |
 |---|---|
-| Resource group | Grouped lab resources for management and teardown |
-| Virtual network and subnet | Provided private connectivity |
-| Network security group | Controlled subnet traffic |
-| NAT Gateway and Standard public IP | Provided outbound-only internet connectivity |
-| Two Ubuntu VMs | Source and destination endpoints |
-| Nginx | Simple TCP/HTTP service on port 80 |
-| Network Watcher Connection Monitor | Recurring connectivity tests |
-| Log Analytics workspace | Monitoring data investigation with KQL |
+| Resource group | Keeps the lab resources together and makes cleanup easier. |
+| VNet and subnet | Give the VMs a private network in which to communicate. |
+| NSG | Limits access to the test service. |
+| NAT Gateway | Gives the VMs outbound internet access without assigning public IPs to them. |
+| Ubuntu VMs | Provide two endpoints for the connectivity test. |
+| Nginx | Gives the destination a simple service to monitor. |
+| Connection Monitor | Runs recurring connectivity tests instead of relying on one manual check. |
+| Log Analytics | Lets me inspect the monitoring records with KQL. |
 
-## 4. Prerequisites and environment
+## Prerequisites
 
-I used Azure Cloud Shell with Bash and Azure CLI. The account needed permission to create resource groups, networking resources, virtual machines, and monitoring resources.
+I used Azure Cloud Shell with Bash and Azure CLI. The account needs permission to create resource groups, virtual machines, networking resources, and monitoring resources.
 
-I checked the active subscription:
+Check the active subscription:
 
 ```bash
 az account show --output table
 az account list --output table
 ```
 
-If necessary, I selected the intended subscription:
+Select the subscription for the lab if needed:
 
 ```bash
 az account set --subscription "YOUR_SUBSCRIPTION_NAME_OR_ID"
 ```
 
-I selected a region with VM size availability and sufficient vCPU quota. The scripts default to `Standard_B2s`; availability and pricing vary by region and subscription.
+The deployment script defaults to `Standard_B2s`. Check VM availability and vCPU quota in your chosen region before running the deployment. Azure prices also vary by region and subscription.
 
-## 5. Implementation walkthrough
+## Stage 1: Set the deployment variables
 
-The `scripts/` directory contains repeatable infrastructure and endpoint commands. Connection Monitor setup and Log Analytics schema inspection are described as portal steps because options and telemetry schemas can vary by configuration and service version.
+I kept the main settings in one file so I would not have to repeat resource names and address ranges across commands.
 
-### Step 1 — Set deployment variables
-
-I opened Cloud Shell in Bash and loaded the project variables:
+From the project directory, I loaded the variables:
 
 ```bash
 cd azure-network-monitoring-lab
@@ -107,30 +97,32 @@ export RESOURCE_GROUP="rg-network-monitoring-demo"
 source scripts/00-set-variables.sh
 ```
 
-The variables file defined the region, resource group, VM names, network names, address ranges, and workspace name. Cloud Shell shell variables are temporary; after reconnecting, I sourced the file again. Azure resources persisted in the subscription.
+The file defines the region, resource group, VM names, VNet, subnet, address ranges, and workspace name.
 
-**Validation:**
+Cloud Shell variables do not persist after a new session. The Azure resources do. If Cloud Shell disconnects, set the resource group name again and source the file before continuing.
+
+Check the values:
 
 ```bash
-printf 'RG=%s REGION=%s VNET=%s SUBNET=%s\\n' "$RESOURCE_GROUP" "$LOCATION" "$VNET_NAME" "$SUBNET_NAME"
+printf 'RG=%s REGION=%s VNET=%s SUBNET=%s\n' "$RESOURCE_GROUP" "$LOCATION" "$VNET_NAME" "$SUBNET_NAME"
 az account show --output table
 ```
 
-### Step 2 — Deploy the network and Azure resources
+Expected check: the subscription and resource names match the lab you intend to use.
 
-I ran:
+## Stage 2: Deploy the Azure resources
+
+I used the deployment script to create the resource group, VNet, subnet, NSG, NAT Gateway, public IP for the NAT Gateway, two Ubuntu VMs, and Log Analytics workspace.
 
 ```bash
 bash scripts/01-deploy-infrastructure.sh
 ```
 
-The script created the resource group, VNet, subnet, NSG, NAT Gateway, Standard public IP, two Ubuntu VMs, and Log Analytics workspace. The VMs were created without public IP addresses.
+The VMs are created without public IP addresses. The NSG allows TCP/80 from the VNet address range so the source VM can reach Nginx on the destination.
 
-The NSG included a TCP/80 inbound rule scoped to the VNet address range so the source VM could reach the destination's Nginx service.
+I used a dedicated resource group to keep the lab separate from other Azure resources. This also makes it easier to remove the environment when testing is finished.
 
-**Why:** A dedicated resource group simplified management and cleanup. Private addressing reduced exposure, while NAT Gateway addressed the separate need for outbound package access.
-
-**Validation:**
+Check the deployment:
 
 ```bash
 az group show --name "$RESOURCE_GROUP" --output table
@@ -139,193 +131,229 @@ az network vnet subnet show -g "$RESOURCE_GROUP" --vnet-name "$VNET_NAME" -n "$S
 az vm list -d -g "$RESOURCE_GROUP" --output table
 ```
 
-I confirmed both VMs had private IP addresses and no VM public IP addresses.
+Confirm both VMs have private IP addresses and no VM public IP addresses.
 
-- Region: `[RECORD REGION]`
-- Source VM private IP: `[RECORD SOURCE IP]`
-- Destination VM private IP: `[RECORD DESTINATION IP]`
-- VM size: `[RECORD VM SIZE]`
-- Workspace: `[RECORD WORKSPACE NAME]`
+Record your deployment details:
 
-### Step 3 — Install Nginx and resolve outbound access
+- Region: `[ADD REGION]`
+- Source VM private IP: `[ADD IP]`
+- Destination VM private IP: `[ADD IP]`
+- VM size: `[ADD SIZE]`
+- Log Analytics workspace: `[ADD WORKSPACE NAME]`
 
-The initial package installation failed because the VM did not have a working outbound path to public package repositories. I associated NAT Gateway with the subnet and retried installation through Azure VM Run Command:
+## Stage 3: Set up outbound access and install Nginx
+
+The first package installation attempt failed because the VM had no working route to the public package repositories. A private IP address does not automatically give a VM outbound internet access.
+
+I attached a NAT Gateway to the subnet. The VMs kept their private IP addresses, while the NAT Gateway handled outbound translation for connections initiated from the subnet. The NAT Gateway uses a public IP of its own. The VMs do not.
+
+NAT Gateway adds to the cost of the lab, so I treated it as a temporary requirement and included its removal in the cleanup options.
+
+I then ran the Nginx installation script:
 
 ```bash
 bash scripts/02-install-nginx.sh
 ```
 
-Using Run Command avoided opening SSH to the internet or assigning a public IP to the destination VM.
+The script uses Azure VM Run Command. This avoids opening SSH to the internet or giving the destination VM a public IP.
 
-**Validation:**
+Check the service:
 
 ```bash
-az vm run-command invoke -g "$RESOURCE_GROUP" -n "$DEST_VM_NAME" --command-id RunShellScript --scripts "sudo systemctl is-active nginx; curl -I --max-time 5 http://127.0.0.1/"
+az vm run-command invoke \
+  -g "$RESOURCE_GROUP" \
+  -n "$DEST_VM_NAME" \
+  --command-id RunShellScript \
+  --scripts "sudo systemctl is-active nginx; curl -I --max-time 5 http://127.0.0.1/"
 ```
 
-The expected result was an active Nginx service and an HTTP response from the local endpoint.
+Expected result: `systemctl` reports `active`, and the local HTTP request returns a response from Nginx.
 
-### Step 4 — Verify private TCP connectivity
+Record the result: `[ADD COMMAND OUTPUT OR SCREENSHOT]`.
 
-I ran:
+## Stage 4: Test connectivity between the VMs
+
+With Nginx running, I tested the service from the source VM using the destination VM's private IP address.
 
 ```bash
 bash scripts/03-test-connectivity.sh
 ```
 
-The script retrieved the destination VM's private IP and tested TCP/80 from the source VM. It also made an HTTP request to the destination.
+The script retrieves the destination's private IP, checks whether TCP/80 accepts a connection, and sends an HTTP request.
 
-**Expected healthy baseline:** TCP connection succeeded and Nginx returned an HTTP response.
+A successful test confirms the source VM can reach the destination service over the private network. It also gives me a baseline to compare against during the failure test.
 
-- Test date/time: `[RECORD DATE AND TIME]`
-- TCP/80 result: `[RECORD PASS/FAIL]`
-- HTTP response/status: `[RECORD RESULT]`
-- Evidence image: `screenshots/04-private-connectivity.png`
+Record the result:
 
-This baseline established a known-good state before failure testing.
+- Test date and time: `[ADD DATE AND TIME]`
+- TCP/80: `[ADD PASS OR FAIL]`
+- HTTP response: `[ADD STATUS OR OUTPUT]`
+- Screenshot: `screenshots/04-private-connectivity.png`
 
-### Step 5 — Configure Connection Monitor
+## Stage 5: Configure Network Watcher Connection Monitor
 
-In the Azure portal, I opened **Network Watcher → Connection monitor** and created a monitor in the lab region.
+A manual connection test only shows what happened at one point in time. I wanted recurring checks, so I configured Connection Monitor in Azure Network Watcher.
 
-I configured:
-1. The source endpoint as the source Ubuntu VM.
-2. The destination endpoint as the destination VM or its private IP, as supported by the selected configuration.
-3. Protocol: **TCP**.
-4. Destination port: **80**.
-5. Test frequency: approximately **60 seconds**.
-6. Log Analytics workspace destination, where supported by the selected configuration.
+In the Azure portal, I opened Network Watcher, selected Connection monitor, and created a monitor in the same region as the lab.
 
-I saved the monitor and allowed time for recurring results to accumulate.
+I configured the test with these settings:
 
-**Why:** A manual `curl` test only describes one moment. Connection Monitor performs repeated tests, allowing reachability and latency trends to be observed over time.
+1. Source: the source Ubuntu VM.
+2. Destination: the destination VM or its private IP, depending on the endpoint options available.
+3. Protocol: TCP.
+4. Destination port: 80.
+5. Test frequency: approximately 60 seconds.
+6. Log Analytics workspace: selected the lab workspace where the integration option was available.
 
-**Validation:** I confirmed the monitor and test configuration existed, the source endpoint/agent was healthy, and test results were being generated.
+I saved the monitor and allowed it to run before starting the failure test.
 
-- Monitor name: `[RECORD MONITOR NAME]`
-- Test configuration: `[RECORD TEST NAME]`
-- Frequency: `[RECORD FREQUENCY]`
-- Initial status: `[RECORD OBSERVED STATUS]`
-- Evidence image: `screenshots/05-connection-monitor.png`
+The important checks were that the monitor existed, the source endpoint was healthy, and test results started appearing. Creating a workspace alone does not prove Connection Monitor is sending data to it, so I checked the workspace rather than assuming the integration worked.
 
-Portal capabilities and export paths can vary. I verified the workspace integration in the deployment instead of assuming that creating a workspace automatically populated it.
+Record the configuration and observed status:
 
-### Step 6 — Inspect telemetry with Log Analytics and KQL
+- Monitor name: `[ADD NAME]`
+- Test configuration: `[ADD NAME]`
+- Frequency: `[ADD FREQUENCY]`
+- Initial status: `[ADD OBSERVED STATUS]`
+- Screenshot: `screenshots/05-connection-monitor.png`
 
-I opened the configured Log Analytics workspace and selected **Logs**. I first ran `queries/connection-monitor-discovery.kql` to identify tables receiving records.
+## Stage 6: Review the monitoring data with KQL
 
-I inspected timestamps, endpoint identifiers, test status fields, and any available latency measurements. I then adapted `queries/connection-monitor-analysis.kql` to the table and column names actually present in the workspace.
+I opened the Log Analytics workspace and selected Logs. Before writing an analysis query, I checked which tables were receiving data.
 
-**What I investigated:**
-- Whether monitoring records were arriving.
-- Whether records represented the intended endpoints.
-- Whether tests succeeded or failed.
-- Whether latency data was available and what unit it used.
-- Whether the query time range included the baseline and failure test.
+I started with the discovery query in `queries/connection-monitor-discovery.kql`. After identifying the relevant table, I inspected its columns and sample records. I then updated `queries/connection-monitor-analysis.kql` to match the schema in the workspace.
 
-**Record actual findings:**
-- Table queried: `[RECORD TABLE]`
-- Timestamp field: `[RECORD FIELD]`
-- Status field and values: `[RECORD FIELD / VALUES]`
-- Latency field and unit, if available: `[RECORD FIELD / UNIT]`
-- Observed baseline latency, if available: `[RECORD MEASUREMENT]`
+I looked for:
 
-Do not publish a metric until confirmed in your workspace. Connection Monitor telemetry schemas vary; schema discovery comes before writing production queries or alerts.
+- Records from the expected source and destination.
+- The time each test ran.
+- The test result or connection status.
+- Latency fields, if the selected data source included them.
 
-### Step 7 — Simulate service failure and recovery
+The table and column names depend on the Connection Monitor configuration and the data being sent to the workspace. For this reason, the analysis query is a template. Check the schema before using it. Do not assume a latency field or status value without confirming the records.
 
-After confirming baseline connectivity, I stopped Nginx on the destination VM:
+Record what you found:
 
-```bash
-az vm run-command invoke -g "$RESOURCE_GROUP" -n "$DEST_VM_NAME" --command-id RunShellScript --scripts "sudo systemctl stop nginx"
-```
+- Table: `[ADD TABLE NAME]`
+- Timestamp column: `[ADD COLUMN]`
+- Status column and values: `[ADD COLUMN AND VALUES]`
+- Latency column and unit, if present: `[ADD COLUMN AND UNIT]`
+- Baseline measurement, if available: `[ADD OBSERVED VALUE]`
 
-I waited for subsequent Connection Monitor tests and inspected the results. I then restarted Nginx:
+## Stage 7: Stop Nginx and test recovery
+
+Once the baseline test was working, I stopped Nginx on the destination VM.
 
 ```bash
-az vm run-command invoke -g "$RESOURCE_GROUP" -n "$DEST_VM_NAME" --command-id RunShellScript --scripts "sudo systemctl start nginx"
+az vm run-command invoke \
+  -g "$RESOURCE_GROUP" \
+  -n "$DEST_VM_NAME" \
+  --command-id RunShellScript \
+  --scripts "sudo systemctl stop nginx"
 ```
 
-I verified that Nginx was active and observed whether successful TCP/80 tests resumed.
+I waited for the next Connection Monitor tests and checked their results. I then started Nginx again:
 
-**Interpretation:** Stopping Nginx demonstrates an application/service availability failure. It does not, by itself, demonstrate a routing or network-path failure. A separate, carefully scoped NSG deny-rule exercise can test network-layer blocking, but the temporary rule must be removed immediately after validation.
+```bash
+az vm run-command invoke \
+  -g "$RESOURCE_GROUP" \
+  -n "$DEST_VM_NAME" \
+  --command-id RunShellScript \
+  --scripts "sudo systemctl start nginx"
+```
 
-- Nginx stop time: `[RECORD TIME]`
-- Monitor result during outage: `[RECORD RESULT]`
-- Nginx restart time: `[RECORD TIME]`
-- Successful tests resumed at: `[RECORD TIME]`
-- Evidence image: `screenshots/06-failure-and-recovery.png`
+I checked the service state and watched for successful TCP/80 tests to return.
 
-### Step 8 — Optional Workbook and alerting
+This test demonstrates a service availability problem. Stopping Nginx does not prove the network path itself has failed. The VM and network can still be reachable while the application listening on port 80 is unavailable.
 
-If this stage was completed, I used Azure Monitor Workbooks to visualize verified telemetry. Possible panels included test success/failure counts, a recent-results table, and latency over time where a valid latency field was available.
+A separate NSG rule test would demonstrate network-layer blocking. If you run one, scope the deny rule to the test traffic, record the change, and remove the rule as soon as the test ends.
 
-If alerting was implemented, I created an alert only after confirming the status field, query behavior, evaluation interval, and threshold. I associated an Action Group only if notification delivery was tested.
+Record the results:
 
-- Workbook: `[RECORD NAME OR N/A]`
-- Alert rule/condition: `[RECORD NAME AND CONDITION OR N/A]`
-- Notification test: `[RECORD RESULT OR N/A]`
+- Nginx stop time: `[ADD TIME]`
+- Monitor result during outage: `[ADD RESULT]`
+- Nginx restart time: `[ADD TIME]`
+- Successful tests resumed: `[ADD TIME OR RESULT]`
+- Screenshot: `screenshots/06-failure-and-recovery.png`
 
-Do not claim this stage unless it was actually configured and validated.
+## Stage 8: Optional Workbook and alert
 
-### Step 9 — Cost review and NAT Gateway removal
+A Workbook or alert is an optional extension. I would add one only after confirming the table, fields, and status values in Log Analytics.
 
-I reviewed usage in Azure Cost Management. Main cost contributors included VM compute while running, managed disks, NAT Gateway, its public IP, monitoring tests, and Log Analytics ingestion/retention.
+A Workbook might show recent test results, success and failure counts, or latency over time if the data includes a suitable latency field. An alert needs a tested query, evaluation period, threshold, and Action Group. Notification delivery should also be tested.
 
-Deallocating a VM stops compute billing but does not eliminate managed-disk charges. I considered removing NAT Gateway after package installation, but first checked whether monitoring and agent communication continued to work without it.
+Record this stage only if you completed it:
 
-To remove the NAT Gateway association and resources:
+- Workbook: `[ADD NAME OR N/A]`
+- Alert rule and condition: `[ADD DETAILS OR N/A]`
+- Notification test: `[ADD RESULT OR N/A]`
+
+## Stage 9: Review costs and remove NAT Gateway
+
+The main cost items for this lab are VM compute, managed disks, NAT Gateway, its public IP, Connection Monitor tests, and Log Analytics ingestion and retention.
+
+Deallocating a VM stops compute charges, but managed disks continue to incur charges. NAT Gateway also has hourly and data-processing costs while deployed.
+
+I included a script to detach and remove the NAT Gateway after package installation:
 
 ```bash
 bash scripts/04-remove-nat-gateway.sh
 ```
 
-The earlier rough estimate of US$15–25 for one week was not a complete total because it did not fully include NAT Gateway and all monitoring charges. I used the Azure Pricing Calculator and actual Cost Management data for the final figure.
+Before removing it, check whether the monitoring setup needs outbound connectivity for agents or other components. Confirm monitoring still works after removal if you choose this route.
 
-- Region: `[RECORD REGION]`
-- Runtime: `[RECORD HOURS]`
-- Actual observed cost: `[RECORD COST AND CURRENCY]`
-- NAT Gateway retained or removed: `[RECORD DECISION]`
+The earlier US$15 to US$25 estimate for one week was not a full project total. It did not fully account for NAT Gateway and all monitoring charges. Use the Azure Pricing Calculator before deployment and Cost Management for the actual amount billed.
 
-### Step 10 — Clean up
+Record your costs:
 
-After testing, I deleted the dedicated resource group:
+- Region: `[ADD REGION]`
+- Runtime: `[ADD HOURS]`
+- Cost shown in Cost Management: `[ADD AMOUNT AND CURRENCY]`
+- NAT Gateway: `[RETAINED OR REMOVED]`
+
+## Stage 10: Delete the lab
+
+When testing is complete, remove the dedicated resource group:
 
 ```bash
 bash scripts/99-cleanup.sh
 ```
 
-The script asks for the exact resource group name before initiating deletion. I verified removal in the Azure portal or with:
+The script asks you to confirm the exact resource group name before it starts deletion.
+
+Check whether the resource group still exists:
 
 ```bash
 az group exists --name "$RESOURCE_GROUP"
 ```
 
-## 6. Results
+A result of `false` means Azure no longer finds the resource group.
 
-Complete this table using actual observations from your deployment.
+## Results
 
-| Test | Expected behavior | Actual observation |
+Fill in this table with the results from your own deployment. Keep the evidence with the repository so someone reviewing the project can follow what you tested.
+
+| Test | What I expected | What happened |
 |---|---|---|
-| Baseline TCP/80 | Connection succeeds | `[RECORD RESULT]` |
-| Baseline HTTP | Nginx returns a response | `[RECORD RESULT]` |
-| Connection Monitor baseline | Recurring results appear | `[RECORD RESULT]` |
-| Nginx stopped | TCP/80 test fails | `[RECORD RESULT]` |
-| Nginx restarted | Successful tests resume | `[RECORD RESULT]` |
-| Log Analytics | Records can be queried | `[RECORD RESULT]` |
-| Workbook/alert | Only if implemented | `[RECORD RESULT OR N/A]` |
+| TCP/80 baseline | Connection succeeds | `[ADD RESULT]` |
+| HTTP baseline | Nginx returns a response | `[ADD RESULT]` |
+| Connection Monitor | Recurring test results appear | `[ADD RESULT]` |
+| Nginx stopped | Service test fails | `[ADD RESULT]` |
+| Nginx restarted | Successful tests return | `[ADD RESULT]` |
+| Log Analytics | Monitoring records are queryable | `[ADD RESULT]` |
+| Workbook or alert | Only if configured | `[ADD RESULT OR N/A]` |
 
-### Engineering takeaways
+## What I took away from the build
 
-- Private addressing and outbound internet access are separate design considerations.
-- NAT Gateway provided outbound connectivity without assigning public IPs to the VMs.
-- A healthy baseline made failure observations easier to interpret.
-- Connection Monitor provided recurring observations rather than a single point-in-time test.
-- Service failure and network-path failure must be distinguished.
-- KQL queries and alert conditions should be based on the actual workspace schema.
-- Cost management is part of the design, especially when NAT Gateway, compute, disks, and monitoring ingestion are involved.
+- Private addressing and outbound internet access are separate parts of the network design.
+- NAT Gateway solved the package download issue without assigning public IPs to the VMs.
+- A baseline test made the outage results easier to compare.
+- Connection Monitor gave me recurring test results instead of a single manual check.
+- A stopped service and a broken network path are different failure conditions.
+- KQL queries and alert rules need to match the data actually present in the workspace.
+- Azure monitoring resources add to the project cost, so cleanup matters.
 
-## 7. Repository structure
+## Repository structure
 
 ```text
 azure-network-monitoring-lab/
@@ -350,40 +378,42 @@ azure-network-monitoring-lab/
     └── 99-cleanup.sh
 ```
 
-## 8. Screenshots and evidence to publish
+## Screenshots and evidence
 
-Create a `screenshots/` directory and add redacted evidence for:
-1. Resource group and deployed resources.
-2. VNet address space and subnet.
-3. NSG TCP/80 rule and source scope.
-4. VM overview showing private IPs and no VM public IPs.
-5. Nginx running.
-6. Successful private TCP/80 test.
-7. Connection Monitor configuration and baseline results.
-8. Log Analytics discovery query and actual records.
-9. Failure and recovery observations.
-10. Workbook/alert validation, if implemented.
-11. Cost Management summary, if appropriate.
+Create a `screenshots/` folder and add redacted screenshots of:
 
-Redact subscription IDs, tenant IDs, email addresses, public IP addresses, and other sensitive details. Never publish credentials, tokens, SSH private keys, or secrets.
+1. The resource group and deployed resources.
+2. The VNet address space and subnet.
+3. The NSG rule for TCP/80.
+4. Both VMs showing private IP addresses and no VM public IPs.
+5. Nginx running on the destination.
+6. The successful private connectivity test.
+7. Connection Monitor settings and baseline results.
+8. The KQL query and records returned by Log Analytics.
+9. The Nginx outage and recovery results.
+10. Workbook or alert results, if you built them.
+11. Cost Management, if you want to include the cost breakdown.
 
-## 9. Resume description
+Hide subscription IDs, tenant IDs, email addresses, public IP addresses, and other details you do not want to share. Never commit passwords, tokens, SSH private keys, or other secrets.
 
-After completing the tests and replacing placeholders with verified evidence, this project can be summarized as:
+## Resume summary
 
-> Designed and deployed an Azure network monitoring lab using private Linux VMs, Azure Virtual Network, NAT Gateway, Network Watcher Connection Monitor, and Log Analytics. Validated TCP service reachability, investigated monitoring telemetry with KQL, and performed controlled outage and recovery testing.
+Use this only after completing the tests and adding your evidence:
 
-Adjust the wording to match the features actually implemented. Do not claim production deployment, measured performance improvements, alerting, Workbooks, or Application Insights unless they were configured and tested.
+> Built an Azure network monitoring lab using private Linux VMs, Azure Virtual Network, NAT Gateway, Network Watcher Connection Monitor, and Log Analytics. Tested TCP service reachability, reviewed monitoring data with KQL, and performed service outage and recovery checks.
 
-## 10. Scope and references
+Change the wording to match the work you completed. Do not list Workbooks, alerts, measured performance improvements, or other features unless you configured and tested them.
 
-This lab focuses on network reachability and service monitoring.
+## Scope and references
 
-- **Application Insights is not included by default.** It requires a real instrumented application; creating the resource alone does not generate meaningful application telemetry.
-- **NSG flow logs are not included.** Review Microsoft's current flow logging lifecycle and guidance before adding flow logs; Virtual Network flow logs are the current direction.
-- Packet capture, Workbooks, and alerts are optional extensions and should be added only when there is a clear objective and verified evidence.
+This project focuses on private network connectivity and service monitoring.
+
+- Application Insights is not part of the base lab. A real instrumented application is needed to produce useful application telemetry.
+- NSG flow logs are not part of this build. Check Microsoft's current guidance before adding flow logs. Virtual Network flow logs are the recommended direction.
+- Workbooks, alerts, and packet capture are optional additions. Add them when you have a clear test case and evidence.
 
 References:
+
 - [Azure Network Watcher overview](https://learn.microsoft.com/azure/network-watcher/network-watcher-overview)
 - [Connection Monitor overview](https://learn.microsoft.com/azure/network-watcher/connection-monitor-overview)
 - [Create a Connection Monitor](https://learn.microsoft.com/azure/network-watcher/connection-monitor-create-using-portal)
