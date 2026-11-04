@@ -53,6 +53,12 @@ flowchart LR
 
 Both VMs use private IPs. Neither VM needs a public IP for this lab.
 
+
+(screenshots/vmsource-creation.png)
+
+
+(screenshots/vm-dest.png)
+
 ## Why I chose these components
 
 | Component | Reason |
@@ -167,8 +173,7 @@ az vm run-command invoke \
 ```
 
 Expected result: `systemctl` reports `active`, and the local HTTP request returns a response from Nginx.
-!(screenshots//ngnixtest.png)
-`screenshots/ngnixtest.png`
+(screenshots/ngnixtest.png)
 
 
 ## Stage 4: Test connectivity between the VMs
@@ -182,7 +187,7 @@ bash scripts/03-test-connectivity.sh
 The script retrieves the destination's private IP, checks whether TCP/80 accepts a connection, and sends an HTTP request.
 
 A successful test confirms the source VM can reach the destination service over the private network. It also gives me a baseline to compare against during the failure test.
-`screenshots/vmtest.png`
+(screenshots/vmtest.png)
 
 
 ## Stage 5: Configure Network Watcher Connection Monitor
@@ -200,6 +205,13 @@ I configured the test with these settings:
 5. Test frequency: approximately 60 seconds.
 6. Log Analytics workspace: selected the lab workspace where the integration option was available.
 
+
+(screenshots/cm-testgroup.png)
+
+
+(screenshots/cm-testgroup-det.png)
+
+
 I saved the monitor and allowed it to run before starting the failure test.
 
 The important checks were that the monitor existed, the source endpoint was healthy, and test results started appearing. Creating a workspace alone does not prove Connection Monitor is sending data to it, so I checked the workspace rather than assuming the integration worked.
@@ -209,7 +221,8 @@ Record the configuration and observed status:
 - Monitor name: `cm-network-performance`
 - Test configuration: `cm-configuration`
 - Frequency: `60 seconds`
-- Screenshot: `screenshots/05-connection-monitor.png`
+  
+ (screenshots/05-connection-monitor.png)
 
 ## Stage 6: Review the monitoring data with KQL
 
@@ -229,7 +242,7 @@ The table and column names depend on the Connection Monitor configuration and th
 Record what you found:
 
 
- - Screenshot: `screenshots/kqltest.png`
+ (screenshots/kqltest.png)
 
 
 ## Stage 7: Stop Nginx and test recovery
@@ -243,7 +256,7 @@ az vm run-command invoke \
   --command-id RunShellScript \
   --scripts "sudo systemctl stop nginx"
 ```
- - Screenshot: `screenshots/kqltest.png`
+ (screenshots/kqltest.png)
 
    
 I waited for the next Connection Monitor tests and checked their results. I then started Nginx again:
