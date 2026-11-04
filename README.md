@@ -54,10 +54,10 @@ flowchart LR
 Both VMs use private IPs. Neither VM needs a public IP for this lab.
 
 
-(screenshots/vmsource-creation.png)
+![](screenshots/vmsource-creation.png)
 
 
-(screenshots/vm-dest.png)
+![](screenshots/vm-dest.png)
 
 ## Why I chose these components
 
