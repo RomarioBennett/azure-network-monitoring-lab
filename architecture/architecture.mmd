@@ -1,0 +1,18 @@
+flowchart LR
+  subgraph Azure["Azure subscription"]
+    subgraph RG["Dedicated resource group"]
+      subgraph VNET["VNet 10.0.0.0/16"]
+        subgraph SUB["Subnet 10.0.1.0/24"]
+          SRC["Source Ubuntu VM<br/>Private IP only"]
+          DST["Destination Ubuntu VM<br/>Private IP only<br/>Nginx TCP/80"]
+        end
+        NAT["NAT Gateway<br/>Outbound translation"]
+      end
+      CM["Network Watcher<br/>Connection Monitor"]
+      LAW["Log Analytics workspace"]
+    end
+  end
+  SRC -->|"TCP/80 test"| DST
+  SRC --> NAT
+  DST --> NAT
+  CM -.->|"Telemetry, where configured"| LAW

@@ -1,0 +1,14 @@
+// TEMPLATE: discover actual table and columns before use.
+// Replace placeholders with fields confirmed in your workspace.
+// <TABLE_NAME>
+// | where TimeGenerated > ago(24h)
+// | summarize TestCount=count() by bin(TimeGenerated, 5m), tostring(<STATUS_COLUMN>)
+// | order by TimeGenerated asc
+//
+// Latency template: verify the field is numeric and confirm its unit.
+// <TABLE_NAME>
+// | where TimeGenerated > ago(24h)
+// | summarize AvgLatency=avg(todouble(<LATENCY_COLUMN>)),
+//             P95Latency=percentile(todouble(<LATENCY_COLUMN>), 95)
+//   by bin(TimeGenerated, 5m)
+// | order by TimeGenerated asc

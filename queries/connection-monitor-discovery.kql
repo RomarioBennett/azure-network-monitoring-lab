@@ -1,0 +1,6 @@
+// Run in the Log Analytics workspace selected for Connection Monitor.
+// A workspace alone does not guarantee Connection Monitor data ingestion.
+search *
+| where TimeGenerated > ago(24h)
+| summarize Records=count(), LatestRecord=max(TimeGenerated) by $table
+| order by LatestRecord desc
