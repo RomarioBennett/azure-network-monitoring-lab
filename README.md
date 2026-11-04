@@ -167,6 +167,7 @@ az vm run-command invoke \
 ```
 
 Expected result: `systemctl` reports `active`, and the local HTTP request returns a response from Nginx.
+![Azure Resource Group](screenshots//ngnixtest.png)
 `screenshots/ngnixtest.png`
 
 
