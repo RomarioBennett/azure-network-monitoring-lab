@@ -211,9 +211,9 @@ The important checks were that the monitor existed, the source endpoint was heal
 
 Record the configuration and observed status:
 
-- Monitor name: `[ADD NAME]`
-- Test configuration: `[ADD NAME]`
-- Frequency: `[ADD FREQUENCY]`
+- Monitor name: `cm-network-performance`
+- Test configuration: `cm-configuration`
+- Frequency: `60 seconds`
 - Initial status: `[ADD OBSERVED STATUS]`
 - Screenshot: `screenshots/05-connection-monitor.png`
 
