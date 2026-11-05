@@ -4,7 +4,7 @@ I built this lab to test connectivity between two private Linux virtual machines
 
 The main goal was to get familiar with Azure network monitoring and understand what the monitoring data tells you when a service becomes unavailable.
 
-This README follows the stages of the build. It explains the choices, commands, and checks used at each point. Replace the `[ADD ...]` fields with details from your own deployment. The scripts have been checked for Bash syntax, but they have not been tested end to end against an Azure subscription. Do not treat an expected result as a recorded result.
+
 
 ## What I built
 
